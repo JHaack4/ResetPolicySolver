@@ -4,8 +4,8 @@
 # coding: utf-8
 
 # In[42]:
-
-csvFileName = """input.xlsx"""
+import sys
+csvFileName = sys.argv[1] #"""input.xlsx"""
 
 # PARAMS
 #goal_time = 98 * 60 
@@ -106,6 +106,8 @@ def normalToProbDict(means, stdevs, maxStd=3):
 def is_blank(s):
     if s == '': return True
     if s == 'nan': return True
+    if s == float('nan'): return True
+    if isinstance(s, float) and np.isnan(s): return True
     return False
 
 df = pd.read_excel(csvFileName, header=None, dtype=str)
@@ -119,7 +121,7 @@ assert(df[0][5] == 'ResetTime')
 assert(df[2][4] == 'MaxStd')
 assert(df[2][5] == 'NoiseStd')
 df_rows, df_cols = df.shape
-#print(df)
+print(df)
 
 splitNames = [df[i][0] for i in range(1,df_cols)]
 resetProbs = [(lambda x: x if x < 1 else x/100)(float(df[i][1])) for i in range(1,df_cols)]
@@ -474,6 +476,9 @@ P,E,PB = computeProbabilityTree(goal_time, splitTimesDict)
 print("DEBUG INFO")
 print(" probability to PB = %.8f" % PB[0][0])
 print(" expected run time (no resets) = %s" % intToTime(E[0][0]))
+if PB[0][0] == 0:
+    print("probability of PB is too low. Not computing reset policy")
+    sys.exit()
 ET,R,resetPolicy = computeResetPolicy(goal_time, splitTimesDict, reset_cost)
 
 # for mmm in range(10, 200, 1):
@@ -515,8 +520,10 @@ for s in range(num_splits):
         num_resets += R[s][m]
         print("   time=%-7s P=%-5.3f E=%-7s PB=%-5.3f ET=%-9s %s" % (intToTime(m), 
                 P[s][m]*pMult, intToTime(E[s][m]), PB[s][m], intToTime(ET[s][m]), resetS))
-    
-    print("SPLIT: " + splitNames[s])
+
+    print(" SPLIT: " + splitNames[s])
+print("END")
+print(" expected time to PB = " + intToTime(ET[0][0]))
 print("POLICY (for goal %s)" % intToTime(goal_time))
 print("BEFORE   SPLIT       AFTER")
 for i in range(len(splitNames)):
